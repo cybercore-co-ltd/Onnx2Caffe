@@ -117,7 +117,7 @@ def getGraph(onnx_path):
 if __name__ == "__main__":
 	# Argument parsing
 	parser = argparse.ArgumentParser(description="Arguments for the script")
-	parser.add_argument('--onnx_file', type=str, required=True, help='Path to the ONNX file')
+	parser.add_argument('onnx_file', type=str, help='Path to the ONNX file')
 	args = parser.parse_args()
 
 	# Prepare paths

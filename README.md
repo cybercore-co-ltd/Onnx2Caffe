@@ -1,13 +1,13 @@
 # Convert pytorch to Caffe by ONNX
-This tool converts [pytorch](https://github.com/pytorch/pytorch) model to [Caffe](https://github.com/BVLC/caffe) model by [ONNX](https://github.com/onnx/onnx)  
-only use for inference
+This is modified from the [Onnx2Caffe](https://github.com/MTlab/onnx2caffe) to support new operators, and serve for FPGA project
 
-### Dependencies
-* caffe (with python support)
-* pytorch 0.4 (optional if you only want to convert onnx)
+### SETUP:
+Use the command to preproduce the conda env: `conda env create -f environment.yml`
+
+Install Dependencies
 * onnx  
 
-we recomand using protobuf 2.6.1 and install onnx from source  
+we recomend install onnx from source  
 ```
 git clone --recursive https://github.com/onnx/onnx.git
 cd onnx 
@@ -15,14 +15,16 @@ python setup.py install
 ```
 
 ### How to use
-run test.py to make sure it has been installed correctly  
-To convert onnx model to caffe:
+To convert onnx model to caffe, simply use:
 ```
-python convertCaffe.py ./model/MobileNetV2.onnx ./model/MobileNetV2.prototxt ./model/MobileNetV2.caffemodel
+ONNX_FILE=model/ssd_denent.onnx
+python convertCaffe.py  --onnx_file $ONNX_FILE
 ```
+The results (model.prototext and model.caffemodel) will be saved to the same folder of ONNX file.
+
 ### Current support operation
 * Conv
-* ConvTranspose
+* ConvTranspose (Deconvlution)
 * BatchNormalization
 * MaxPool
 * AveragePool
@@ -37,7 +39,4 @@ python convertCaffe.py ./model/MobileNetV2.onnx ./model/MobileNetV2.prototxt ./m
 * Concat
 * Flatten
 
-### TODO List
- - [ ] support all onnx operations (which is impossible)
- - [ ] merge batchnormization to convolution
- - [ ] merge scale to convolution
+
