@@ -19,6 +19,8 @@ from collections import OrderedDict
 from onnx import shape_inference
 import importlib
 
+import os
+
 transformers = [
 	ConstantsToInitializers(),
 	ConvAddFuser(),
@@ -118,12 +120,16 @@ if __name__ == "__main__":
 	# Argument parsing
 	parser = argparse.ArgumentParser(description="Arguments for the script")
 	parser.add_argument('onnx_file', type=str, help='Path to the ONNX file')
+	parser.add_argument('--output', type=str, help='Path to the Output dir')
 	args = parser.parse_args()
 
 	# Prepare paths
 	onnx_path = args.onnx_file
 	prototxt_path = onnx_path.replace(".onnx", ".prototxt")
 	caffemodel_path = onnx_path.replace(".onnx", ".caffemodel")
+	if args.output is not None:
+		prototxt_path=os.path.join(args.output, os.path.basename(prototxt_path))
+		caffemodel_path=os.path.join(args.output, os.path.basename(caffemodel_path))
 
 	# Convert ONNX to Caffe
 	graph = getGraph(onnx_path)
