@@ -35,10 +35,11 @@ def read_weight_caffe(output_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    root_dir = '/home/chuong/Workspace/BenchMark/swap_anchor/denet56_rename_output'
-    model = os.path.join(root_dir,'denet56_swaphead_scalefirst.prototxt')
-    weights = os.path.join(root_dir,'denet56_swaphead_scalefirst.caffemodel')
+    root_dir = '/home/haimd/workspace/Onnx2Caffe/caffe'
+    model = os.path.join(root_dir,'2.prototxt')
+    weights = os.path.join(root_dir,'2.caffemodel')
     output = os.path.join(root_dir,'caffe_weight_dict.pkl')
+
     if os.path.isfile(output):
         os.remove(output)
     print('---------Writing Pickle-----------')
