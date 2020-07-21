@@ -4,3 +4,4 @@ onnx
 __pycache__
 *.prototxt
 *.caffemodel
+scripts
