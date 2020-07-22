@@ -4,7 +4,6 @@ import numpy as np
 import torch
 import argparse
 
-
 parser = argparse.ArgumentParser(description="Parse weight pytorch and caffe path")
 parser.add_argument('-p', '--pytorch_weight', action='store', help="pytorch weight path")
 parser.add_argument('-c', '--caffe_weight', action='store', help="caffe weight path")
