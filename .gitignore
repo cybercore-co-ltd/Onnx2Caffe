@@ -4,3 +4,5 @@ onnx
 __pycache__
 *.prototxt
 *.caffemodel
+*.pkl
+*.pth

@@ -2,15 +2,18 @@ import os
 import pickle
 import numpy as np
 import torch
+import argparse
 
-root_dir = '/home/haimd/workspace/Onnx2Caffe/caffe'
-pytorch_weight_path = os.path.join(root_dir, 'atss_effES_shortfpn.pkl')
-caffe_weight_path = os.path.join(root_dir, 'caffe_weight_dict.pkl')
 
-with open(pytorch_weight_path, 'rb') as pytorch_pk:
+parser = argparse.ArgumentParser(description="Parse weight pytorch and caffe path")
+parser.add_argument('-p', '--pytorch_weight', action='store', help="pytorch weight path")
+parser.add_argument('-c', '--caffe_weight', action='store', help="caffe weight path")
+args = parser.parse_args()
+
+with open(args.pytorch_weight, 'rb') as pytorch_pk:
     pytorch_weight = pickle.load(pytorch_pk, encoding='bytes')['state_dict']
     
-with open(caffe_weight_path, 'rb') as caffe_pk:
+with open(args.caffe_weight, 'rb') as caffe_pk:
     caffe_weight = pickle.load(caffe_pk, encoding='bytes')
 
 # print('---------------Caffe weights--------------------')
@@ -62,7 +65,6 @@ for num_layer in range(15):
     pytorch_w = np.array(pytorch_w)
     caffe_w = caffe_weight[caffe_layers_name[num_layer]][0]
     delta = np.sum(np.absolute(pytorch_w - caffe_w))
-    del_sum += delta
     pytorch_l1_norm = np.sum(np.absolute(pytorch_w))
     caffe_l1_norm = np.sum(np.absolute(caffe_w))
     print( 'difference', delta, '| pytorch_l1_norm', pytorch_l1_norm, '| pytorch_l1_norm', pytorch_l1_norm  )
