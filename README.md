@@ -10,12 +10,12 @@ cd onnx
 python setup.py install
 ```
 
-To test if the setup is successful, try to convert the provided sample model `model/ssd_denet.onnx`.
+To test if the setup is successful, try to convert the provided sample model `model/MobileNetV2.onnx`.
 
 ## 2. Usage
 To convert onnx model to caffe, simply use:
 ```
-ONNX_FILE=model/ssd_denet.onnx
+ONNX_FILE=model/MobileNetV2.onnx
 python convertCaffe.py  $ONNX_FILE
 ```
 The results (model.prototext and model.caffemodel) will be saved to the same folder of ONNX file.
