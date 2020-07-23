@@ -82,6 +82,24 @@ def _convert_relu(node,graph,err):
 
     return layer
 
+def _convert_relu6(node,graph,err):
+    #ReLU6 is ClipLayer
+    input_name = str(node.inputs[0])
+    output_name = str(node.outputs[0])
+    name = str(node.name)
+
+    if input_name==output_name:
+        inplace = True
+    else:
+        inplace = False
+
+    layer = myf("Clip",name,[input_name],[output_name],min=0,max=6,in_place=inplace)
+    # l_top_relu1 = L.ReLU(l_bottom, name=name, in_place=True)
+
+    graph.channel_dims[output_name] = graph.channel_dims[input_name]
+
+    return layer
+
 def _convert_sigmoid(node,graph,err):
     input_name = str(node.inputs[0])
     output_name = str(node.outputs[0])
@@ -405,10 +423,10 @@ def _convert_conv_transpose(node,graph,err):
     #         bias_term=bias_term))
 
 
-
 _ONNX_NODE_REGISTRY = {
     "Conv": _convert_conv,
     "Relu": _convert_relu,
+    "Clip": _convert_relu6,
     "BatchNormalization": _convert_BatchNorm,
     "Add": _convert_Add,
     "Mul": _convert_Mul,
