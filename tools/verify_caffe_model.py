@@ -8,8 +8,6 @@ import onnx
 import onnxruntime as rt
 import torch
 
-from mmcv.runner import load_checkpoint
-from ccdet.models import build_detector
 from convertCaffe import convertToCaffe, getGraph
 from terminaltables import AsciiTable
 
