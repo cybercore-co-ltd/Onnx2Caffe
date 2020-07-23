@@ -145,5 +145,12 @@ dependencies:
   - yaml=0.1.7=h14c3975_1001
   - zlib=1.2.11=h14c3975_1004
   - zstd=1.4.0=h3b9ef0a_0
+  - pip:
+    - addict==2.2.1
+    - future==0.18.2
+    - mmcv==0.6.2
+    - opencv-python==4.2.0.34
+    - torch==1.5.1
+    - yapf==0.30.0
 prefix: /home/chuong/anaconda3/envs/onnx2caffe_env
 
