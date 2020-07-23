@@ -11,25 +11,19 @@ import torch
 from mmcv.runner import load_checkpoint
 from ccdet.models import build_detector
 from convertCaffe import convertToCaffe, getGraph
-
-output_name = ['cls_branch', 'bbox_branch', 'center_branch']
+from terminaltables import AsciiTable
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Convert MMDet to ONNX')
-    parser.add_argument('config', help='test config file path')
-    parser.add_argument('pytorch_checkpoint', help='pytorch checkpoint file')
+    parser = argparse.ArgumentParser()
     parser.add_argument('onnx_checkpoint', help='onnx checkpoint file')
     parser.add_argument('caffe_checkpoint', help='caffe checkpoint file')
+    parser.add_argument('prototxt_path', help='prototxt file path')
     parser.add_argument('input_img', type=str, help='Images for input')
-
-    parser.add_argument('--show', action='store_true', help='show onnx graph')
-    parser.add_argument('--output_file', type=str, default='tmp.onnx')
-    parser.add_argument('--opset_version', type=int, default=11)
     parser.add_argument(
         '--shape',
         type=int,
         nargs='+',
-        default=[768, 1280],
+        default=[800, 1280],
         help='input image size')
     args = parser.parse_args()
     return args
@@ -60,40 +54,38 @@ def get_onnx_pred(onnx_model_path, one_img):
     onnx_result = sess.run(
         None, {net_feed_input[0]: one_img.detach().numpy()})
 
-    cls_list = []
-    bbox_list = []
-    centerness_list = []
-    for i in range(15):
-
-        if i<5:
-            cls_list.append(onnx_result[i])
-        if 4<i<10:
-            bbox_list.append(onnx_result[i])
-        if 9<i<15:
-            centerness_list.append(onnx_result[i])
-        
-    onnx_result_reshape = [cls_list, bbox_list, centerness_list]
-
-    return onnx_result_reshape
+    return onnx_result
 
 def get_caffe_pred(model, inputs):
-    input_name = str(inputs[0][0])
+
+    input_name = str(graph.inputs[0][0])
     caffe_model.blobs[input_name].data[...] = inputs
     caffe_outs = caffe_model.forward()
+    
     return caffe_outs
 
-def compute_mse_pytorch2onnx(onnx_result, caffe_outs):
+def compute_relative_err_onnx2caffe(onnx_result, caffe_outs):
 
-    minus_result = caffe_outs - onnx_result
-    mse = np.sum(minus_result * minus_result)
-    return mse
+    num_layer = ['490', '510', '530', '550', '570', '492', '512', 
+                        '532', '552', '572', '493', '513', '533', '553', '573']    
+    total_mse_err = 0
+    total_rel_err = 0
+    for num in range(len(num_layer)):
+
+        # calculate the mse error between onnx and caffe model
+        mse_err = ((caffe_outs[num_layer[num]] - onnx_result[num])**2).sum()
         
+        # calculate the relative err mse/norm(oonx)
+        norm_onnx = np.linalg.norm(onnx_result[num])
+        rel_err = mse_err / norm_onnx
+        total_mse_err += mse_err
+        total_rel_err += rel_err
+
+    return total_mse_err, total_rel_err
+
+
 if __name__ == '__main__':
     args = parse_args()
-
-    if not args.input_img:
-        args.input_img = osp.join(
-            osp.dirname(__file__), '../tests/data/color.jpg')
 
     if len(args.shape) == 1:
         input_shape = (1, 3, args.shape[0], args.shape[0])
@@ -105,33 +97,22 @@ if __name__ == '__main__':
     else:
         raise ValueError('invalid input shape')
 
-    cfg = mmcv.Config.fromfile(args.config)
-    cfg.model.pretrained = None
-    cfg.data.test.test_mode = True
-
-    # build the model
-    model = build_detector(cfg.model, train_cfg=None, test_cfg=cfg.test_cfg)
-    checkpoint = load_checkpoint(model, args.pytorch_checkpoint, map_location='cpu')
-
-    # old versions did not save class info in checkpoints,
-    # this walkaround is for backward compatibilityabs_err
-    model.CLASSES = checkpoint['meta']['CLASSES']
-
     # imread image for testing
-    input_img = imread_img(args.input_img)
-
-    # # get pytorch results
-    # pytorch_result = get_torch_pred(model, input_img)
+    input_data = imread_img(args.input_img)
 
     # get onnx results
-    onnx_result = get_onnx_pred(args.onnx_checkpoint, input_img) 
-    print(onnx_result)
+    onnx_result = get_onnx_pred(args.onnx_checkpoint, input_data)
+    
+    # Create caffe model
+    graph = getGraph(args.onnx_checkpoint)
+    caffe_model = convertToCaffe(graph, args.prototxt_path, args.caffe_checkpoint)
+    
     # get caffe results
-    caffe_result = get_caffe_pred(args.caffe_checkpoint, input_img)
+    caffe_result = get_caffe_pred(caffe_model, input_data)
 
     # compute the err between pytorch model and converted onnx model
-    mse = compute_mse_pytorch2onnx(onnx_result, )
+    total_mse_err, total_rel_err = compute_relative_err_onnx2caffe(onnx_result, caffe_result)
 
-    print(f'TOTAL ERR BETWEEN PYTORCH MODEL AND ONNX MODEL (MSE): {mse}')
+    print(f'TOTAL ERR BETWEEN CAFFE MODEL AND ONNX MODEL (MSE): MSE_ERR {total_mse_err} | REL_ERR {total_rel_err}')
 
 
