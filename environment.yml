@@ -150,6 +150,7 @@ dependencies:
     - future==0.18.2
     - mmcv==0.6.2
     - opencv-python==4.2.0.34
+    - terminaltables==3.1.0
     - torch==1.5.1
     - yapf==0.30.0
 prefix: /home/chuong/anaconda3/envs/onnx2caffe_env
