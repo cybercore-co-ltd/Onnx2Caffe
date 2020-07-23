@@ -68,21 +68,20 @@ def compute_relative_err_onnx2caffe(onnx_result, caffe_outs):
 
     num_layer = ['490', '510', '530', '550', '570', '492', '512', 
                         '532', '552', '572', '493', '513', '533', '553', '573']    
-    total_mse_err = 0
+    total_mae_err = 0
     total_rel_err = 0
     for num in range(len(num_layer)):
 
-        # calculate the mse error between onnx and caffe model
-        mse_err = ((caffe_outs[num_layer[num]] - onnx_result[num])**2).sum()
+        # calculate the mae error between onnx and caffe model
+        mae_err = np.abs(caffe_outs[num_layer[num]] - onnx_result[num]).sum()
         
-        # calculate the relative err mse/norm(oonx)
+        # calculate the relative err mae/norm(oonx)
         norm_onnx = np.linalg.norm(onnx_result[num])
-        rel_err = mse_err / norm_onnx
-        total_mse_err += mse_err
+        rel_err = mae_err / norm_onnx
+        total_mae_err += mae_err
         total_rel_err += rel_err
 
-    return total_mse_err, total_rel_err
-
+    return total_mae_err, total_rel_err
 
 if __name__ == '__main__':
     args = parse_args()
@@ -111,8 +110,8 @@ if __name__ == '__main__':
     caffe_result = get_caffe_pred(caffe_model, input_data)
 
     # compute the err between pytorch model and converted onnx model
-    total_mse_err, total_rel_err = compute_relative_err_onnx2caffe(onnx_result, caffe_result)
+    total_mae_err, total_rel_err = compute_relative_err_onnx2caffe(onnx_result, caffe_result)
 
-    print(f'TOTAL ERR BETWEEN CAFFE MODEL AND ONNX MODEL (MSE): MSE_ERR {total_mse_err} | REL_ERR {total_rel_err}')
+    print(f'TOTAL ERR BETWEEN CAFFE MODEL AND ONNX MODEL (MAE): MAE_ERR {total_mae_err} | REL_ERR {total_rel_err}')
 
 
