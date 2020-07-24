@@ -33,7 +33,7 @@ class ErrorHandling(object):
         return _convert_custom
       else:
         raise TypeError(
-          "ONNX node of type {} is not supported.\n".format(node.op_type,)
+          "ONNX node {} of type {} is not supported.\n".format(node.name, node.op_type,)
         )
 
 

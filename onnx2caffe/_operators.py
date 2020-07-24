@@ -202,7 +202,6 @@ def _convert_Reshape(node,graph,err):
     else:
         shape = tuple(node.input_tensors[node.inputs[1]])
     # if shape == ():
-    import ipdb; ipdb.set_trace()
 
     if input_name==output_name:
         inplace = True
@@ -301,11 +300,8 @@ def _convert_gemm(node,graph,err):
     return layer
 
 def _convert_upsample(node,graph,err):
-    factor = int(node.attrs["height_scale"])
-#    factor = 2
-    #upsample_scale = node.attrs["scales"]
-    #assert upsample_scale[2]==upsample_scale[3], "The caffe deconvolution only supports symmetric kernel size"
-    #factor = int(upsample_scale[2])
+    # import pdb; pdb.set_trace()
+    factor = int(node.attrs.get("height_scale", 2))
     node_name = node.name
     input_name = str(node.inputs[0])
     output_name = str(node.outputs[0])
