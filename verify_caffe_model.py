@@ -12,9 +12,11 @@ from mmcv.runner import load_checkpoint
 from ccdet.models import build_detector
 from convertCaffe import convertToCaffe, getGraph
 from terminaltables import AsciiTable
+from ccdet.utils import PublicConfig as Config
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('config', help='config file path')
     parser.add_argument('onnx_checkpoint', help='onnx checkpoint file')
     parser.add_argument('caffe_checkpoint', help='caffe checkpoint file')
     parser.add_argument('prototxt_path', help='prototxt file path')
@@ -54,7 +56,21 @@ def get_onnx_pred(onnx_model_path, one_img):
     onnx_result = sess.run(
         None, {net_feed_input[0]: one_img.detach().numpy()})
 
-    return onnx_result
+    cls_list = []
+    bbox_list = []
+    centerness_list = []
+    for i in range(15):
+
+        if i<5:
+            cls_list.append(onnx_result[i])
+        if 4<i<10:
+            bbox_list.append(onnx_result[i])
+        if 9<i<15:
+            centerness_list.append(onnx_result[i])
+        
+    onnx_result_reshape = [cls_list, bbox_list, centerness_list]
+
+    return onnx_result_reshape
 
 def get_caffe_pred(model, inputs):
 
@@ -64,28 +80,49 @@ def get_caffe_pred(model, inputs):
     
     return caffe_outs
 
-def compute_relative_err_onnx2caffe(onnx_result, caffe_outs):
+def compute_relative_err_onnx2caffe(onnx_result, caffe_outs, output_names):
 
-    num_layer = ['490', '510', '530', '550', '570', '492', '512', 
-                        '532', '552', '572', '493', '513', '533', '553', '573']    
-    total_mae_err = 0
-    total_rel_err = 0
-    for num in range(len(num_layer)):
+    total_err = 0
+    table_data = [
+        ['Stage', 'Branch', 'MAE', 'Relative_err']
+    ]
+    key_caffe = [node.name for node in onnx.load(args.onnx_checkpoint).graph.output]
+    
+    for i in range(len(onnx_result)):
+        for j in range(len(onnx_result[0])):
 
-        # calculate the mae error between onnx and caffe model
-        mae_err = np.abs(caffe_outs[num_layer[num]] - onnx_result[num]).sum()
-        
-        # calculate the relative err mae/norm(oonx)
-        norm_onnx = np.linalg.norm(onnx_result[num])
-        rel_err = mae_err / norm_onnx
-        total_mae_err += mae_err
-        total_rel_err += rel_err
+            # calculate the mae error between onnx and caffe model
+            mae_err = (np.abs(onnx_result[i][j] - caffe_outs[key_caffe[5*i + j]])).sum()
 
-    return total_mae_err, total_rel_err
+            # calculate the relative err mae/norm(onnx)
+            norm_onnx = (np.linalg.norm(onnx_result[i][j])).sum()
+            rel_err = mae_err/norm_onnx
+            total_err = total_err + rel_err
+
+            # table result
+            table_data.append([j+1, output_names[5*i+j], mae_err, rel_err])
+
+    table = AsciiTable(table_data)
+    print(table.table)
+
+    return total_err
+
+def auto_rename_outputs(cfg):
+    
+    output_names=[]
+    nstages = cfg.model.neck.num_outs
+    if cfg.model.type in ['ATSS', 'FCOS']:
+        output_names = [f'cls_score.{i}' for i in range(nstages)] \
+                    + [f'bbox_pred.{i}' for i in range(nstages)] \
+                    + [f'centerness.{i}' for i in range(nstages)]
+    elif cfg.model.type in ['GFL','RetinaNet']:
+        output_names = [f'cls_score.{i}' for i in range(nstages)] \
+                    + [f'bbox_pred.{i}' for i in range(nstages)]
+    return output_names
 
 if __name__ == '__main__':
+    
     args = parse_args()
-
     if len(args.shape) == 1:
         input_shape = (1, 3, args.shape[0], args.shape[0])
     elif len(args.shape) == 2:
@@ -95,6 +132,12 @@ if __name__ == '__main__':
         ) + tuple(args.shape)
     else:
         raise ValueError('invalid input shape')
+    
+    # parse the config
+    cfg = Config.fromfile(args.config)
+
+    # get name of output features: cls branch, bbox_branch, centerness_branch
+    output_names = auto_rename_outputs(cfg)
 
     # imread image for testing
     input_data = imread_img(args.input_img)
@@ -110,8 +153,8 @@ if __name__ == '__main__':
     caffe_result = get_caffe_pred(caffe_model, input_data)
 
     # compute the err between pytorch model and converted onnx model
-    total_mae_err, total_rel_err = compute_relative_err_onnx2caffe(onnx_result, caffe_result)
+    total_err = compute_relative_err_onnx2caffe(onnx_result, caffe_result, output_names)
 
-    print(f'TOTAL ERR BETWEEN CAFFE MODEL AND ONNX MODEL (MAE): MAE_ERR {total_mae_err} | REL_ERR {total_rel_err}')
+    print(f'TOTAL ERR BETWEEN CAFFE MODEL AND ONNX MODEL : TOTAL_ERR {total_err} ')
 
 
