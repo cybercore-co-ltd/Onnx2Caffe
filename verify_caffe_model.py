@@ -7,6 +7,10 @@ import numpy as np
 import onnx
 import onnxruntime as rt
 import torch
+import sys
+import os
+import pathlib
+
 
 from convertCaffe import convertToCaffe, getGraph
 from terminaltables import AsciiTable
@@ -85,7 +89,6 @@ def compute_relative_err_onnx2caffe(onnx_result, caffe_outs, output_names):
         ['Stage', 'Branch', 'MAE', 'Relative_err']
     ]
     key_caffe = [node.name for node in onnx.load(args.onnx_checkpoint).graph.output]
-    
     for i in range(len(onnx_result)):
         for j in range(len(onnx_result[0])):
 
