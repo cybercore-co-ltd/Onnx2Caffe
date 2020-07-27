@@ -4,6 +4,7 @@ import onnx
 import onnxruntime as rt
 import torch
 import os
+import mmcv
 
 from convertCaffe import convertToCaffe, getGraph
 from terminaltables import AsciiTable
@@ -13,6 +14,7 @@ def parse_args():
     parser.add_argument('onnx_checkpoint', help='onnx checkpoint file')
     parser.add_argument('caffe_checkpoint', help='caffe checkpoint file')
     parser.add_argument('prototxt_path', help='prototxt file path')
+    parser.add_argument('--input_img', type=str, help='Images for input')
     parser.add_argument(
         '--shape',
         type=int,
@@ -22,6 +24,16 @@ def parse_args():
     args = parser.parse_args()
     return args
 
+def imread_img(img_path):
+
+    # read image
+    one_img = mmcv.imread(img_path, 'color')
+    one_img = mmcv.imresize(one_img, input_shape[1:]).transpose(2, 1, 0)
+    one_img = one_img/255
+    one_img = torch.from_numpy(one_img).unsqueeze(0).float()
+
+    return one_img
+
 def get_onnx_pred(onnx_model_path, one_img):
 
     onnx_model = onnx.load(onnx_model_path)
@@ -29,7 +41,6 @@ def get_onnx_pred(onnx_model_path, one_img):
 
     # get onnx output
     input_all = [node.name for node in onnx_model.graph.input]
-    
     input_initializer = [
         node.name for node in onnx_model.graph.initializer
     ]
@@ -67,7 +78,7 @@ def compute_relative_err_onnx2caffe(onnx_result, caffe_outs, output_name):
 
     total_err = 0
     table_data = [
-        ['Stage', 'Branch', 'MAE', 'Relative_err']
+        ['Branch', 'MAE', 'Relative_err']
     ]
     for i in range(len(onnx_result)):
         for j in range(len(onnx_result[0])):
@@ -81,7 +92,7 @@ def compute_relative_err_onnx2caffe(onnx_result, caffe_outs, output_name):
             total_err = total_err + rel_err
 
             # table result
-            table_data.append([j+1, output_name[5*i + j], mae_err, rel_err])
+            table_data.append([output_name[5*i + j], mae_err, rel_err])
 
     table = AsciiTable(table_data)
     print(table.table)
@@ -106,9 +117,12 @@ if __name__ == '__main__':
         ) + tuple(args.shape)
     else:
         raise ValueError('invalid input shape')
-
+    
     # generate the random image for testing
-    input_data = torch.randn(1, (*input_shape))
+    if args.input_img is None:
+        input_data = torch.randn(1, (*input_shape))
+    else:
+        input_data = imread_img(args.input_img)
 
     # get the name of output branch
     output_name = get_onnx_outputname(args.onnx_checkpoint)
