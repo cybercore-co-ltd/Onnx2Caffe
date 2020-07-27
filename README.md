@@ -2,7 +2,10 @@
 This is modified from the [Onnx2Caffe](https://github.com/MTlab/onnx2caffe) to support new operators, and serve for Vitis AI FPGA project.
 
 ## 1.Setup:
-Use the command to preproduce the conda env: `conda env create -f environment.yml`
+Use the command to preproduce the conda env: 
+```
+conda env create -f environment.yml -n cc_onnx2caffe
+```
 We recomend install onnx from source  
 ```
 git clone --recursive https://github.com/onnx/onnx.git
