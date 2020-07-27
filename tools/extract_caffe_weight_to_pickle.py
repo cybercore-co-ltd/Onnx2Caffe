@@ -13,6 +13,7 @@ def extract_caffe_model(model, weights, output_path):
     Returns:
         None
     """
+
     net = caffe.Net(model, caffe.TEST)
     net.copy_from(weights)
 
@@ -35,15 +36,17 @@ def read_weight_caffe(output_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    root_dir = '/home/chuong/Workspace/BenchMark/swap_anchor/denet56_rename_output'
-    model = os.path.join(root_dir,'denet56_swaphead_scalefirst.prototxt')
-    weights = os.path.join(root_dir,'denet56_swaphead_scalefirst.caffemodel')
-    output = os.path.join(root_dir,'caffe_weight_dict.pkl')
-    if os.path.isfile(output):
-        os.remove(output)
+    parser.add_argument('-m', '--model_name', help='prototxt of caffe model')
+    parser.add_argument('-w', '--weights', help='weight file of caffe model')
+    parser.add_argument('-o', '--output', help='output file of caffe model')
+    args = parser.parse_args()
+
+    if os.path.isfile(args.output):
+        os.remove(args.output)
     print('---------Writing Pickle-----------')
-    extract_caffe_model(model, weights, output)
+    extract_caffe_model(args.model_name, args.weights, args.output)
     print('---------Verify Pickle-----------')
-    read_weight_caffe(output)
+    read_weight_caffe(args.output)
+    
 
 

@@ -192,7 +192,9 @@ def _convert_Permute(node,graph,err):
     return layer
 
 def _convert_Reshape(node,graph,err):
+    
     node_name = node.name
+    print('xxx', node_name)
     input_name = str(node.inputs[0])
     output_name = str(node.outputs[0])
     if len(node.inputs)==1:
@@ -200,7 +202,6 @@ def _convert_Reshape(node,graph,err):
     else:
         shape = tuple(node.input_tensors[node.inputs[1]])
     # if shape == ():
-
 
     if input_name==output_name:
         inplace = True
@@ -216,6 +217,7 @@ def _convert_Reshape(node,graph,err):
         return layer
     else:
         return err.unsupported_op_configuration(node, "Reshape dimention number shall be 2 or 4")
+    
 
 def _convert_Flatten(node,graph,err):
     node_name = node.name
