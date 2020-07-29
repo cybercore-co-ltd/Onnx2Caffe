@@ -61,7 +61,7 @@ def _convert_conv(node, graph, err):
                 pad_h=pads[0], pad_w=pads[1],
                 num_output=W.shape[0], dilation=dilations[0], bias_term=bias_flag)
     # When num_out=1, don't write group=1
-    if kwargs[num_output]>1:
+    if kwargs['num_output']>1:
         kwargs['group']=groups
     layer = myf("Convolution", node_name, [input_name], [output_name],
                 **kwargs)
