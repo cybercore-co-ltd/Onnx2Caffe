@@ -55,12 +55,16 @@ def _convert_conv(node, graph, err):
     else:
         stride_h = strides[0]
         stride_w = strides[1]
-
-    layer = myf("Convolution", node_name, [input_name], [output_name],
-                kernel_h=kernel_shape[0], kernel_w=kernel_shape[1],
-                stride_h=stride_h, stride_w=stride_w, group=groups,
+    
+    kwargs = dict(kernel_h=kernel_shape[0], kernel_w=kernel_shape[1],
+                stride_h=stride_h, stride_w=stride_w, 
                 pad_h=pads[0], pad_w=pads[1],
                 num_output=W.shape[0], dilation=dilations[0], bias_term=bias_flag)
+    # When num_out=1, don't write group=1
+    if kwargs[num_output]>1:
+        kwargs['group']=groups
+    layer = myf("Convolution", node_name, [input_name], [output_name],
+                **kwargs)
 
     graph.channel_dims[output_name] = W.shape[0]
     return layer
