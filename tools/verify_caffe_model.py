@@ -5,15 +5,14 @@ import onnxruntime as rt
 import torch
 import os
 import mmcv
+import caffe
 
-from convertCaffe import convertToCaffe, getGraph
 from terminaltables import AsciiTable
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('onnx_checkpoint', help='onnx checkpoint file')
     parser.add_argument('caffe_checkpoint', help='caffe checkpoint file')
-    parser.add_argument('prototxt_path', help='prototxt file path')
     parser.add_argument('--input_img', type=str, help='Images for input')
     parser.add_argument(
         '--shape',
@@ -38,6 +37,7 @@ def get_onnx_pred(onnx_model_path, one_img):
 
     onnx_model = onnx.load(onnx_model_path)
     onnx.checker.check_model(onnx_model)
+    
 
     # get onnx output
     input_all = [node.name for node in onnx_model.graph.input]
@@ -50,49 +50,38 @@ def get_onnx_pred(onnx_model_path, one_img):
     onnx_result = sess.run(
         None, {net_feed_input[0]: one_img.detach().numpy()})
 
-    cls_list = []
-    bbox_list = []
-    centerness_list = []
-    for i in range(15):
+    onnx_result_dict = dict()
+    output_name = [node.name for node in onnx_model.graph.output]
+    for i,name in enumerate(output_name):
+        onnx_result_dict[name]=onnx_result[i]
+    input_name = net_feed_input[0]
+    return onnx_result_dict, input_name
 
-        if i<5:
-            cls_list.append(onnx_result[i])
-        if 4<i<10:
-            bbox_list.append(onnx_result[i])
-        if 9<i<15:
-            centerness_list.append(onnx_result[i])
-        
-    onnx_result_reshape = [cls_list, bbox_list, centerness_list]
+def get_caffe_pred(model, input_name, inputs):
 
-    return onnx_result_reshape
-
-def get_caffe_pred(model, inputs):
-
-    input_name = str(graph.inputs[0][0])
     caffe_model.blobs[input_name].data[...] = inputs
     caffe_outs = caffe_model.forward()
     
     return caffe_outs
 
-def compute_relative_err_onnx2caffe(onnx_result, caffe_outs, output_name):
+def compute_relative_err_onnx2caffe(onnx_result, caffe_outs):
 
     total_err = 0
     table_data = [
-        ['Branch', 'MAE', 'Relative_err']
+        ['Output', 'MAE', 'Relative_err']
     ]
-    for i in range(len(onnx_result)):
-        for j in range(len(onnx_result[0])):
+    for k,v in onnx_result.items():
 
-            # calculate the mae error between onnx and caffe model
-            mae_err = (np.abs(onnx_result[i][j] - caffe_outs[output_name[5*i + j]])).sum()
+        # calculate the mae error between onnx and caffe model
+        mae_err = (np.abs(v - caffe_outs[k])).sum()
 
-            # calculate the relative err mae/norm(onnx)
-            norm_onnx = (np.linalg.norm(onnx_result[i][j])).sum()
-            rel_err = mae_err/norm_onnx
-            total_err = total_err + rel_err
+        # calculate the relative err mae/norm(onnx)
+        norm_onnx = (np.linalg.norm(v)).sum()
+        rel_err = mae_err/norm_onnx
+        total_err = total_err + rel_err
 
-            # table result
-            table_data.append([output_name[5*i + j], mae_err, rel_err])
+        # table result
+        table_data.append([k, mae_err, rel_err])
 
     table = AsciiTable(table_data)
     print(table.table)
@@ -128,17 +117,17 @@ if __name__ == '__main__':
     output_name = get_onnx_outputname(args.onnx_checkpoint)
 
     # get onnx results
-    onnx_result = get_onnx_pred(args.onnx_checkpoint, input_data)
+    onnx_result, input_name = get_onnx_pred(args.onnx_checkpoint, input_data)
     
     # Create caffe model
-    graph = getGraph(args.onnx_checkpoint)
-    caffe_model = convertToCaffe(graph, args.prototxt_path, args.caffe_checkpoint)
-    
+    prototxt_path=args.caffe_checkpoint.replace('.caffemodel','.prototxt')
+    caffe_model = caffe.Net(prototxt_path, caffe.TEST)
+    caffe_model.copy_from(args.caffe_checkpoint)
     # get caffe results
-    caffe_result = get_caffe_pred(caffe_model, input_data)
+    caffe_result = get_caffe_pred(caffe_model, input_name, input_data)
 
     # compute the err between pytorch model and converted onnx model
-    total_err = compute_relative_err_onnx2caffe(onnx_result, caffe_result, output_name)
+    total_err = compute_relative_err_onnx2caffe(onnx_result, caffe_result)
 
     print(f'TOTAL ERR BETWEEN CAFFE MODEL AND ONNX MODEL : TOTAL_ERR {total_err} ')
 
