@@ -181,13 +181,11 @@ def _convert_Permute(node,graph,err):
     node_name = node.name
     input_name = str(node.inputs[0])
     output_name = str(node.outputs[0])
-    # import pdb; pdb.set_trace()
     if input_name==output_name:
         inplace = True
     else:
         inplace = False
     perm = node.attrs.get('perm', [0,2,3,1])
-    # import pdb; pdb.set_trace()
     layer = myf("Permute",node_name,[input_name],[output_name],
                 order=1,
                 # permute_param=[dict(order=perm[i]) for i in perm]
@@ -205,7 +203,6 @@ def _convert_Reshape(node,graph,err):
         shape = tuple(node.attrs.get('shape', ()))
     else:
         shape = tuple(node.input_tensors[node.inputs[1]])
-    # if shape == ():
 
     if input_name==output_name:
         inplace = True
@@ -221,7 +218,6 @@ def _convert_Reshape(node,graph,err):
         return layer
     else:
         return err.unsupported_op_configuration(node, "Reshape dimention number shall be 2 or 4")
-    
 
 def _convert_Flatten(node,graph,err):
     node_name = node.name
@@ -304,7 +300,6 @@ def _convert_gemm(node,graph,err):
     return layer
 
 def _convert_upsample(node,graph,err):
-    # import pdb; pdb.set_trace()
     factor = int(node.attrs.get("height_scale", 2))
     node_name = node.name
     input_name = str(node.inputs[0])
@@ -313,10 +308,6 @@ def _convert_upsample(node,graph,err):
     # channels = input_shape[1]
     channels = graph.channel_dims[input_name]
     pad = int(math.ceil((factor - 1) / 2.))
-    # layer = myf("Deconvolution", node_name, [input_name], [output_name],
-    #             kernel_size=2 * factor - factor % 2,
-    #             stride=factor, group=channels,
-    #             pad = pad, num_output=channels, bias_term = False)
     mode = node.attrs["mode"]
     #https://github.com/pytorch/pytorch/issues/6900
     if mode=="bilinear":
