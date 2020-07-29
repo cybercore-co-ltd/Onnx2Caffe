@@ -1,6 +1,7 @@
 .idea
 .vscode
 onnx
+cache
 __pycache__
 *.prototxt
 *.caffemodel
