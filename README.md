@@ -16,12 +16,23 @@ python setup.py install
 To test if the setup is successful, try to convert the provided sample model `model/MobileNetV2.onnx`.
 
 ## 2. Usage
-To convert onnx model to caffe, simply use:
-```
+1. To convert onnx model to caffe, simply use:
+```bash
 ONNX_FILE=model/MobileNetV2.onnx
 python convertCaffe.py  $ONNX_FILE
 ```
-The results (model.prototext and model.caffemodel) will be saved to the same folder of ONNX file.
++ The results (model.prototext and model.caffemodel) will be saved to the same folder of ONNX file.
++ If you want to save Caffe files to different folder, specify `--ouput $OUTPUT_DIR`.
+
+2. To verify if the converted caffe yields the same output with ONNX model, use:
+```bash
+ONNX_FILE=model/MobileNetV2.onnx
+CAFFE_CKPT=model/MobileNetV2.caffemodel 
+python tools/verify_caffe_model.py $ONNX $CAFFE_CKPT --shape 1280 768
+```
++ The Mean Absolute Error(MAE) and Relative Error will be computed using a random input image. 
++ The shape input must be set correctly. If wrong, it will print the expected size. This is intentially to ensure you double check the correct size for inference. 
++ To test with specific image, set `--input_img $IMAGE_FILE`.
 
 ### Current support operation
 * Conv
