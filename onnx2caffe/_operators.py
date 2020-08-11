@@ -35,9 +35,7 @@ def _convert_conv(node, graph, err):
     else:
         err.missing_initializer(node,
                                 "Weight tensor: {} not found in the graph initializer".format(weight_name,))
-    is_deconv = False
-    if node.op_type.endswith("Transpose"):
-        is_deconv = True
+
     bias_flag = False
     bias = None
     if len(node.inputs) > 2:
@@ -373,10 +371,9 @@ def _convert_conv_transpose(node,graph,err):
     pads = node.attrs.get("pads", [1, 1, 1, 1])
     strides = node.attrs["strides"]
 
-    num_output=W.shape[1] if groups==1 else groups
     layer = myf('Deconvolution', node_name, [input_name], [output_name],
                 convolution_param=dict(
-                    num_output=num_output,
+                    num_output=W.shape[1]*groups,
                     kernel_h=kernel_shape[0],kernel_w=kernel_shape[1],
                     stride_h=strides[0],stride_w = strides[1],
                     group=groups,
@@ -387,20 +384,7 @@ def _convert_conv_transpose(node,graph,err):
     graph.channel_dims[output_name] = W.shape[1]
     return layer
 
-    # l_top = L.Deconvolution(
-    #     l_bottom,
-    #     name=name,
-    #     convolution_param=dict(
-    #         num_output=W.shape[1],
-    #         kernel_h=kernel_h,
-    #         kernel_w=kernel_w,
-    #         stride_h=stride_h,
-    #         stride_w=stride_w,
-    #         pad_h=pad_h,
-    #         pad_w=pad_w,
-    #         group=groups,
-    #         bias_term=bias_term))
-
+   
 
 
 _ONNX_NODE_REGISTRY = {
