@@ -277,7 +277,6 @@ def _convert_gemm(node,graph,err):
         err.missing_initializer(node,
                                 "Weight tensor: {} not found in the graph initializer".format(weight_name, ))
         return
-
     if node.attrs["broadcast"] != 1 or node.attrs["transB"] != 1:
         return err.unsupported_op_configuration(node,"Gemm is supported only for inner_product layer")
 
@@ -371,12 +370,13 @@ def _convert_conv_transpose(node,graph,err):
     # groups = 1
     groups = node.attrs.get("group", 1)
     kernel_shape = node.attrs["kernel_shape"]
-    pads = node.attrs.get("pads", [0, 0, 0, 0])
+    pads = node.attrs.get("pads", [1, 1, 1, 1])
     strides = node.attrs["strides"]
 
+    num_output=W.shape[1] if groups==1 else groups
     layer = myf('Deconvolution', node_name, [input_name], [output_name],
                 convolution_param=dict(
-                    num_output=W.shape[1],
+                    num_output=num_output,
                     kernel_h=kernel_shape[0],kernel_w=kernel_shape[1],
                     stride_h=strides[0],stride_w = strides[1],
                     group=groups,
