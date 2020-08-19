@@ -3,7 +3,7 @@
 
 --------------------------------
 ## I. Introduction
-After convert model from pytorch --> 0nnx --> Caffe, we need to visualize the caffe model prediction whether is correct or not
+After convert model from Pytorch --> 0nnx --> Caffe, we need to visualize the caffe model prediction whether is correct or not
 
 --------------------------------
 
