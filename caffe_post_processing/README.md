@@ -11,7 +11,10 @@ After converting model from Pytorch --> 0nnx --> Caffe, we need to visualize the
 - In current dir, open the terminal and run the command:
 
 ```
-python test_output_caffe.py <argument1> <argument2> ... <argumentn>
+CAFFE_CKPT=$1  
+IMG_FILE=$2
+OUTPUT_DIR=./cache
+python test_output_caffe.py $CAFFE_CKPT  $IMG_FILE  --shape 320 320 
 ```
 - Argument parser:
 ```
