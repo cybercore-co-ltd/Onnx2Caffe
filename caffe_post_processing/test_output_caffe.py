@@ -46,10 +46,7 @@ if __name__ == '__main__':
     raw_img, img_meta = imread_img(args.img_path, input_shape, norm_data_cfg)
 
     # pre-processing images
-    mean=np.array([123.675, 116.28, 103.53], dtype=np.float32)
-    std=np.array([58.395, 57.12, 57.375], dtype=np.float32)
-    to_rgb=True
-    img = pre_process_img(raw_img, mean, std, to_rgb)
+    img = pre_process_img(raw_img, norm_data_cfg['mean'], norm_data_cfg['std'], norm_data_cfg['to_rgb'])
 
      # Create caffe model
     prototxt_path=args.caffe_checkpoint.replace('.caffemodel','.prototxt')
