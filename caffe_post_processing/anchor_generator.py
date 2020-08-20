@@ -1,4 +1,3 @@
-import mmcv
 import numpy as np
 import torch
 from torch.nn.modules.utils import _pair
