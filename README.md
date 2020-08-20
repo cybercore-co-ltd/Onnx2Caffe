@@ -28,7 +28,7 @@ python tools/verify_caffe_model.py $ONNX $CAFFE_CKPT --shape 1280 768
 + The shape input must be set correctly. If wrong, it will print the expected size. This is intentially to ensure you double check the correct size for inference. 
 + To test with specific image, set `--input_img $IMAGE_FILE`.
 
-3. [To visualize Detection Output](caffe_post_processing_numpy/README.md)
+3. [To visualize Detection Output](post_processing/README.md)
 
 ### Current support operation
 * Conv
