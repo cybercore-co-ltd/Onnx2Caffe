@@ -1,100 +1,47 @@
 import torch
-import nms_ext
+import numpy as np 
 
-def nms(dets, iou_thr, device_id=None):
-    """Dispatch to either CPU or GPU NMS implementations.
-
-    The input can be either a torch tensor or numpy array. GPU NMS will be used
-    if the input is a gpu tensor or device_id is specified, otherwise CPU NMS
-    will be used. The returned type will always be the same as inputs.
-
-    Arguments:
-        dets (torch.Tensor or np.ndarray): bboxes with scores.
-        iou_thr (float): IoU threshold for NMS.
-        device_id (int, optional): when `dets` is a numpy array, if `device_id`
-            is None, then cpu nms is used, otherwise gpu_nms will be used.
-
-    Returns:
-        tuple: kept bboxes and indice, which is always the same data type as
-            the input.
-
-    Example:
-        >>> dets = np.array([[49.1, 32.4, 51.0, 35.9, 0.9],
-        >>>                  [49.3, 32.9, 51.0, 35.3, 0.9],
-        >>>                  [49.2, 31.8, 51.0, 35.4, 0.5],
-        >>>                  [35.1, 11.5, 39.1, 15.7, 0.5],
-        >>>                  [35.6, 11.8, 39.3, 14.2, 0.5],
-        >>>                  [35.3, 11.5, 39.9, 14.5, 0.4],
-        >>>                  [35.2, 11.7, 39.7, 15.7, 0.3]], dtype=np.float32)
-        >>> iou_thr = 0.6
-        >>> suppressed, inds = nms(dets, iou_thr)
-        >>> assert len(inds) == len(suppressed) == 3
-    """
-    # convert dets (tensor or numpy array) to tensor
+def nms_cpu_python(boxes, confident_score, iou_thr, thr_score=0.05, top_k=1000, device_id=None):
+    dets = torch.cat([boxes, confident_score[:, None]], dim=1)
     if isinstance(dets, torch.Tensor):
-        is_numpy = False
-        dets_th = dets
+        is_tensor = True
+        dets_np = dets.detach().cpu().numpy()
     elif isinstance(dets, np.ndarray):
-        is_numpy = True
-        device = 'cpu' if device_id is None else f'cuda:{device_id}'
-        dets_th = torch.from_numpy(dets).to(device)
+        is_tensor = False
+        dets_np = dets
     else:
-        raise TypeError('dets must be either a Tensor or numpy array, '
-                        f'but got {type(dets)}')
-
-    # execute cpu or cuda nms
-    if dets_th.shape[0] == 0:
-        inds = dets_th.new_zeros(0, dtype=torch.long)
-    else:
-        if dets_th.is_cuda:
-            inds = nms_ext.nms(dets_th, iou_thr)
-        else:
-            inds = nms_ext.nms(dets_th, iou_thr)
-
-    if is_numpy:
-        inds = inds.cpu().numpy()
-    return dets[inds, :], inds
-
-def batched_nms_caffe(bboxes, scores, inds, nms_cfg, class_agnostic=False):
-    """Performs non-maximum suppression in a batched fashion.
-
-    Modified from https://github.com/pytorch/vision/blob
-    /505cd6957711af790211896d32b40291bea1bc21/torchvision/ops/boxes.py#L39.
-    In order to perform NMS independently per class, we add an offset to all
-    the boxes. The offset is dependent only on the class idx, and is large
-    enough so that boxes from different classes do not overlap.
-
-    Arguments:
-        bboxes (torch.Tensor): bboxes in shape (N, 4).
-        scores (torch.Tensor): scores in shape (N, ).
-        inds (torch.Tensor): each index value correspond to a bbox cluster,
-            and NMS will not be applied between elements of different inds,
-            shape (N, ).
-        nms_cfg (dict): specify nms type and class_agnostic as well as other
-            parameters like iou_thr.
-        class_agnostic (bool): if true, nms is class agnostic,
-            i.e. IoU thresholding happens over all bboxes,
-            regardless of the predicted class
-
-    Returns:
-        tuple: kept bboxes and indice.
-    """
-    nms_cfg_ = nms_cfg.copy()
-    class_agnostic = nms_cfg_.pop('class_agnostic', class_agnostic)
-    if class_agnostic:
-        bboxes_for_nms = bboxes
-    else:
-        max_coordinate = bboxes.max()
-        offsets = inds.to(bboxes) * (max_coordinate + 1)
-        bboxes_for_nms = bboxes + offsets[:, None]
-    nms_type = nms_cfg_.pop('type', 'nms')
-    # import ipdb; ipdb.set_trace()
-    nms_op = eval(nms_type)
-    dets, keep = nms_op(
-        torch.cat([bboxes_for_nms, scores[:, None]], -1), **nms_cfg_)
-    bboxes = bboxes[keep]
-    scores = dets[:, -1]
-    return torch.cat([bboxes, scores[:, None]], -1), keep
+        raise TypeError(
+            'dets must be either a Tensor or numpy array, but got {}'.format(
+                type(dets)))
+    new_dets_idx = []
+    picked_score = []
+    # dets_np = np.array(dets.cpu())
+    dets_np = np.array(dets.cpu()).astype(np.float32)
+    score = dets_np[:,4]
+    idx = score > thr_score
+    x1 = dets_np[idx,0].astype(np.float32)
+    y1 = dets_np[idx,1].astype(np.float32)
+    x2 = dets_np[idx,2].astype(np.float32)
+    y2 = dets_np[idx,3].astype(np.float32)
+    score = dets_np[idx,4]
+    area = (x2 - x1 + 1) * (y2 - y1 + 1)
+    ## vectorized implementation (fast but the result has redundant boxes) 
+    idxs = np.argsort(score)[-top_k:]
+    while len(idxs) > 0:
+        last = len(idxs) - 1
+        i = idxs[last]
+        new_dets_idx.append(i)
+        picked_score.append(score[i])
+        xx1 = np.maximum(x1[i], x1[idxs[:last]])
+        yy1 = np.maximum(y1[i], y1[idxs[:last]])
+        xx2 = np.minimum(x2[i], x2[idxs[:last]])
+        yy2 = np.minimum(y2[i], y2[idxs[:last]])
+        w = np.maximum(0, xx2 - xx1 + 1)
+        h = np.maximum(0, yy2 - yy1 + 1)
+        overlap = (w * h) / (area[i] + area[idxs[:last]] - w * h)
+        idxs = np.delete(idxs, np.concatenate(([last],np.where(overlap >= iou_thr)[0])))
+    new_dets = torch.from_numpy(dets_np[new_dets_idx])
+    return new_dets, new_dets_idx
 
 def multiclass_nms_caffe(multi_bboxes,
                    multi_scores,
@@ -121,6 +68,7 @@ def multiclass_nms_caffe(multi_bboxes,
             are 0-based.
     """
     num_classes = multi_scores.size(1) - 1
+    # import ipdb; ipdb.set_trace()
     # exclude background category
     if multi_bboxes.shape[1] > 4:
         bboxes = multi_bboxes.view(multi_scores.size(0), -1, 4)
@@ -141,7 +89,8 @@ def multiclass_nms_caffe(multi_bboxes,
         labels = multi_bboxes.new_zeros((0, ), dtype=torch.long)
         return bboxes, labels
 
-    dets, keep = batched_nms_caffe(bboxes, scores, labels, nms_cfg)
+    # dets, keep = batched_nms_caffe(bboxes, scores, labels, nms_cfg)
+    dets, keep = nms_cpu_python(bboxes, scores, 0.5, thr_score=0.3)
 
     if max_num > 0:
         dets = dets[:max_num]

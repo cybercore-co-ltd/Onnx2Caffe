@@ -196,8 +196,14 @@ class Get_Bboxes_Caffe(object):
         # BG cat_id: num_class
         padding = mlvl_scores.new_zeros(mlvl_scores.shape[0], 1)
         mlvl_scores = torch.cat([mlvl_scores, padding], dim=1)
+
+        # xxx = torch.cat([mlvl_bboxes, mlvl_scores], dim=1)
+        # import ipdb; ipdb.set_trace()
+        # det_bboxes, det_labels = nms_cpu_python(mlvl_bboxes, mlvl_scores, 0.5, thr_score=0.3)
+
         # import ipdb; ipdb.set_trace()
         det_bboxes, det_labels = multiclass_nms_caffe(mlvl_bboxes, mlvl_scores,
                                                 cfg['score_thr'], cfg['nms'],
                                                 cfg['max_per_img'])
+        # import ipdb; ipdb.set_trace()
         return det_bboxes, det_labels
