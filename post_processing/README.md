@@ -13,8 +13,8 @@ After converting model from Pytorch --> 0nnx --> Caffe, we need to visualize the
 ```
 CAFFE_CKPT=$1  
 IMG_FILE=$2
-OUTPUT_DIR=./cache
-python test_output_caffe.py $CAFFE_CKPT  $IMG_FILE  --shape 320 320 
+SHOW_DIR=./cache
+python test_output_caffe.py $CAFFE_CKPT  $IMG_FILE  --show_dir $SHOW_DIR --shape 320 320 
 ```
 - Argument parser:
 ```
