@@ -86,7 +86,7 @@ class AnchorGenerator(object):
             'scales and octave_base_scale with scales_per_octave cannot' \
             ' be set at the same time'
         if scales is not None:
-            self.scales = torch.Tensor(scales)
+            self.scales = scales
         elif octave_base_scale is not None and scales_per_octave is not None:
             octave_scales = np.array(
                 [2**(i / scales_per_octave) for i in range(scales_per_octave)])
@@ -118,7 +118,7 @@ class AnchorGenerator(object):
         """Generate base anchors.
 
         Returns:
-            list(torch.Tensor): Base anchors of a feature grid in multiple
+            list(np.array): Base anchors of a feature grid in multiple
                 feature levels.
         """
         multi_level_base_anchors = []
@@ -143,14 +143,14 @@ class AnchorGenerator(object):
 
         Args:
             base_size (int | float): Basic size of an anchor.
-            scales (torch.Tensor): Scales of the anchor.
-            ratios (torch.Tensor): The ratio between between the height
+            scales (np.array): Scales of the anchor.
+            ratios (np.array): The ratio between between the height
                 and width of anchors in a single level.
             center (tuple[float], optional): The center of the base anchor
                 related to a single feature grid. Defaults to None.
 
         Returns:
-            torch.Tensor: Anchors in a single-level feature maps
+            np.array: Anchors in a single-level feature maps
         """
         w = base_size
         h = base_size
@@ -183,13 +183,13 @@ class AnchorGenerator(object):
         """Generate mesh grid of x and y.
 
         Args:
-            x (torch.Tensor): Grids of x dimension.
-            y (torch.Tensor): Grids of y dimension.
+            x (np.array): Grids of x dimension.
+            y (np.array): Grids of y dimension.
             row_major (bool, optional): Whether to return y grids first.
                 Defaults to True.
 
         Returns:
-            tuple[torch.Tensor]: The mesh grids of x and y.
+            tuple[np.array]: The mesh grids of x and y.
         """
         xx, yy = np.meshgrid(x, y)
         if row_major:
@@ -206,7 +206,7 @@ class AnchorGenerator(object):
             device (str): Device where the anchors will be put on.
 
         Return:
-            list[torch.Tensor]: Anchors in multiple feature levels.
+            list[np.array]: Anchors in multiple feature levels.
                 The sizes of each tensor should be [N, 4], where
                 N = width * height * num_base_anchors, width and height
                 are the sizes of the corresponding feature lavel,
@@ -234,7 +234,7 @@ class AnchorGenerator(object):
             This function is usually called by method ``self.grid_anchors``.
 
         Args:
-            base_anchors (torch.Tensor): The base anchors of a feature grid.
+            base_anchors (np.array): The base anchors of a feature grid.
             featmap_size (tuple[int]): Size of the feature maps.
             stride (tuple[int], optional): Stride of the feature map.
                 Defaults to (16, 16).
@@ -242,7 +242,7 @@ class AnchorGenerator(object):
                 Defaults to 'cuda'.
 
         Returns:
-            torch.Tensor: Anchors in the overall feature maps.
+            np.array: Anchors in the overall feature maps.
         """
         feat_h, feat_w = featmap_size
         shift_x = np.arange(0, feat_w) * stride[0]
@@ -270,7 +270,7 @@ class AnchorGenerator(object):
             device (str): Device where the anchors will be put on.
 
         Return:
-            list(torch.Tensor): Valid flags of anchors in multiple levels.
+            list(np.array): Valid flags of anchors in multiple levels.
         """
         assert self.num_levels == len(featmap_sizes)
         multi_level_flags = []
@@ -302,14 +302,14 @@ class AnchorGenerator(object):
                 Defaults to 'cuda'.
 
         Returns:
-            torch.Tensor: The valid flags of each anchor in a single level
+            np.array: The valid flags of each anchor in a single level
                 feature map.
         """
         feat_h, feat_w = featmap_size
         valid_h, valid_w = valid_size
         assert valid_h <= feat_h and valid_w <= feat_w
-        valid_x = torch.zeros(feat_w, dtype=torch.bool, device=device)
-        valid_y = torch.zeros(feat_h, dtype=torch.bool, device=device)
+        valid_x = np.zeros(feat_w, dtype=bool)
+        valid_y = np.zeros(feat_h, dtype=bool)
         valid_x[:valid_w] = 1
         valid_y[:valid_h] = 1
         valid_xx, valid_yy = self._meshgrid(valid_x, valid_y)

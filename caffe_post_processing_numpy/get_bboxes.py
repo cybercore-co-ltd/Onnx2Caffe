@@ -50,7 +50,7 @@ class Get_Bboxes_Caffe(object):
                 >>>     score_thr=0.00,
                 >>>     nms=dict(type='nms', iou_thr=1.0),
                 >>>     max_per_img=10))
-                >>> feat = torch.rand(1, 1, 3, 3)
+                >>> feat = np.rand(1, 1, 3, 3)
                 >>> cls_score, bbox_pred = self.forward_single(feat)
                 >>> # note the input lists are over different levels, not images
                 >>> cls_scores, bbox_preds = [cls_score], [bbox_pred]
